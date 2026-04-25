@@ -120,7 +120,20 @@ info "notify.mjs を Stop イベントで実行してみます..."
 ZUNDAMON_DEBUG=1 node "${REPO_ROOT}/.claude/hooks/notify.mjs" Stop || true
 
 # -----------------------------------------------------------------------------
-# 6. 設定方法の案内
+# 6. zundamon-code-notify 競合チェック
+# -----------------------------------------------------------------------------
+head "zundamon-code-notify 競合チェック"
+GLOBAL_SETTINGS="${HOME}/.claude/settings.json"
+if [[ -f "$GLOBAL_SETTINGS" ]] && grep -q "zundamon-code-notify" "$GLOBAL_SETTINGS" 2>/dev/null; then
+  warn "競合検出: ${GLOBAL_SETTINGS} に zundamon-code-notify の hook エントリが残っています。"
+  warn "himari-code-notify と同時に有効だと二重通知になります。"
+  warn "設定ファイルから zundamon-code-notify のエントリを削除してください。"
+else
+  info "競合なし (zundamon-code-notify エントリは見つかりませんでした)"
+fi
+
+# -----------------------------------------------------------------------------
+# 7. 設定方法の案内
 # -----------------------------------------------------------------------------
 head "Claude Code / Codex CLI への設定方法"
 cat <<EOS

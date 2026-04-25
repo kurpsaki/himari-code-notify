@@ -352,7 +352,7 @@ async function synthesizeWithVoicevox(text, speakerId) {
     `${host}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`;
   logDebug(`voicevox audio_query: ${queryUrl}`);
   const queryRes = await httpPost(queryUrl, null, {
-    accept: 'application/json',
+    Accept: 'application/json',
   });
   let queryBody = queryRes.body.toString('utf8');
 
@@ -369,7 +369,7 @@ async function synthesizeWithVoicevox(text, speakerId) {
   const synthUrl = `${host}/synthesis?speaker=${speakerId}`;
   logDebug(`voicevox synthesis: ${synthUrl}`);
   const synthRes = await httpPost(synthUrl, queryBody, {
-    accept: 'audio/wav',
+    Accept: 'audio/wav',
     'Content-Type': 'application/json',
   });
 

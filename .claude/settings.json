@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "_comment": "Claude Code hooks sample for himari-code-notify. Adjust the path to notify.mjs to match your setup. UserApproval is a logical event with no bundled WAV (audio plays only in VOICEVOX realtime mode).",
+  "_comment": "Claude Code hooks sample for himari-code-notify. Adjust the path to notify.mjs to match your setup.",
   "hooks": {
     "Stop": [
       {
@@ -31,17 +31,6 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/notify.mjs\" SubagentStop"
-          }
-        ]
-      }
-    ],
-    "UserApproval": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/notify.mjs\" UserApproval"
           }
         ]
       }
