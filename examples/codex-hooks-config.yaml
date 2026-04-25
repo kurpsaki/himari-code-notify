@@ -1,0 +1,76 @@
+# =============================================================================
+# examples/codex-hooks-config.yaml
+# -----------------------------------------------------------------------------
+# OpenAI Codex CLI から himari-code-notify を呼び出すためのサンプル設定。
+#
+# Codex CLI の公式設定ファイルは通常 ~/.codex/config.toml ですが、
+# このファイルでは「どのイベントで何を叩けばよいか」を
+# 分かりやすい YAML 形式でまとめています。
+#
+# 実際の設定は Codex CLI のバージョンに合わせて config.toml / config.yaml に
+# 書き写してください。最新の書式は Codex CLI のドキュメントを参照のこと。
+# =============================================================================
+
+# ---- 変数として使うパス (自分の環境に合わせて置き換えてください) ------------
+# macOS:  /Users/<you>/ghq/github.com/<you>/himari-code-notify
+# WSL2:   /home/<you>/himari-code-notify
+repo_path: /absolute/path/to/himari-code-notify
+
+# ---- hook 定義 --------------------------------------------------------------
+# Codex CLI の hook 機能では「特定イベントのタイミングで任意コマンドを実行」
+# できます。以下はイベント名 -> 実行コマンドのマッピングです。
+hooks:
+  # タスク完了時 (Claude Code の Stop 相当)
+  on_task_complete:
+    type: command
+    command: node
+    args:
+      - "{{repo_path}}/.claude/hooks/notify.mjs"
+      - Stop
+
+  # ユーザーの確認が必要になったとき (Claude Code の Notification 相当)
+  on_attention_required:
+    type: command
+    command: node
+    args:
+      - "{{repo_path}}/.claude/hooks/notify.mjs"
+      - Notification
+
+  # サブエージェント完了時 (Claude Code の SubagentStop 相当)
+  on_subagent_complete:
+    type: command
+    command: node
+    args:
+      - "{{repo_path}}/.claude/hooks/notify.mjs"
+      - SubagentStop
+
+  # ユーザー許可が必要になったとき (Claude Code の UserApproval 相当・論理イベント)
+  # 専用 WAV は持たないが、リアルタイム合成モード時は冥鳴ひまり声で「許可が必要よ。」が鳴る
+  on_user_approval:
+    type: command
+    command: node
+    args:
+      - "{{repo_path}}/.claude/hooks/notify.mjs"
+      - UserApproval
+
+# -----------------------------------------------------------------------------
+# 参考: Codex CLI の config.toml にそのまま書く場合の例
+# -----------------------------------------------------------------------------
+# [hooks.on_task_complete]
+# command = "node"
+# args = ["/absolute/path/to/himari-code-notify/.claude/hooks/notify.mjs", "Stop"]
+#
+# [hooks.on_attention_required]
+# command = "node"
+# args = ["/absolute/path/to/himari-code-notify/.claude/hooks/notify.mjs", "Notification"]
+#
+# [hooks.on_subagent_complete]
+# command = "node"
+# args = ["/absolute/path/to/himari-code-notify/.claude/hooks/notify.mjs", "SubagentStop"]
+#
+# -----------------------------------------------------------------------------
+# もし Codex CLI が単一の notify コマンドしか持たない場合 (古いバージョン) は、
+# 下記のようにシェルスクリプト経由でイベントを判別してください:
+#
+# notify = ["bash", "-c", "node /absolute/path/to/himari-code-notify/.claude/hooks/notify.mjs Stop"]
+# -----------------------------------------------------------------------------
