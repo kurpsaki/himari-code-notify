@@ -51,3 +51,8 @@ tmp/
 # Runtime state (per-session artifacts, never committed)
 # -----------------------------------------------------------------------------
 .claude/state/
+
+# -----------------------------------------------------------------------------
+# Intro video build artifacts (build toolchain excluded; final assets kept)
+# -----------------------------------------------------------------------------
+assets/intro/

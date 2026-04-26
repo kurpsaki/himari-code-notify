@@ -10,6 +10,10 @@
 
 # himari-code-notify
 
+<video src="assets/himari-code-notify-intro.mp4" poster="assets/himari-code-notify-intro-poster.jpg" controls width="100%"></video>
+
+> 音声あり・35秒 — VOICEVOX:冥鳴ひまり
+
 > Claude Code / OpenAI Codex CLI の作業が終わったら、**冥鳴ひまりの声で知らせてくれる** 通知 hook。
 > API キー不要、音声ファイル同梱で即使える。
 
