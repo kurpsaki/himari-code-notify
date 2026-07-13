@@ -101,6 +101,10 @@ function runNotify(event, envOverrides = {}, opts = {}) {
     ...process.env,
     ZUNDAMON_DRY_RUN: '1',
     ZUNDAMON_DEBUG: '1',
+    // 各テストは同じイベントを連続実行するため、クールダウンで
+    // スキップされるとロジックが走らない。既定で無効化し、
+    // クールダウン自体のテストだけ envOverrides で明示的に有効化する。
+    ZUNDAMON_COOLDOWN_MS: '0',
   };
   // HOME/USERPROFILE を上書きする場合は process.env から "継承しない" 方が安全
   const env = { ...baseEnv, ...envOverrides };
@@ -413,6 +417,39 @@ async function main() {
       encoding: 'utf8',
     });
     assertEqual(result.status, 0, 'exit code');
+  });
+
+  // ---------------------------------------------------------------------------
+  // 連打抑制 (クールダウン)
+  // ---------------------------------------------------------------------------
+  process.stdout.write(`\n${bold('[6] Cooldown (anti-repeat)')}\n`);
+
+  const lockPathFor = (ev) =>
+    path.join(os.tmpdir(), `himari-code-notify.${ev}.lock`);
+
+  await test('Rapid same event within cooldown → 2nd is skipped', () => {
+    rmSync(lockPathFor('Notification'), { force: true });
+    const first = runNotify('Notification', { ZUNDAMON_COOLDOWN_MS: '3000' });
+    assertEqual(first.status, 0, '1st exit code');
+    assertIncludes(first.stderr, 'dry-run', '1st should run playback logic');
+    const second = runNotify('Notification', { ZUNDAMON_COOLDOWN_MS: '3000' });
+    assertEqual(second.status, 0, '2nd exit code');
+    assertIncludes(second.stderr, 'skipped by cooldown', '2nd should be skipped');
+  });
+
+  await test('Different event is not blocked by another event cooldown', () => {
+    rmSync(lockPathFor('Notification'), { force: true });
+    rmSync(lockPathFor('Stop'), { force: true });
+    runNotify('Notification', { ZUNDAMON_COOLDOWN_MS: '3000' });
+    const other = runNotify('Stop', { ZUNDAMON_COOLDOWN_MS: '3000' });
+    assertIncludes(other.stderr, 'dry-run', 'Stop should still run');
+  });
+
+  await test('ZUNDAMON_COOLDOWN_MS=0 disables cooldown', () => {
+    rmSync(lockPathFor('Notification'), { force: true });
+    runNotify('Notification', { ZUNDAMON_COOLDOWN_MS: '0' });
+    const second = runNotify('Notification', { ZUNDAMON_COOLDOWN_MS: '0' });
+    assertIncludes(second.stderr, 'dry-run', '2nd should still run when disabled');
   });
 
   // ---------------------------------------------------------------------------

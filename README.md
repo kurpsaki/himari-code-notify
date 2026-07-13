@@ -376,6 +376,7 @@ sudo apt install pulseaudio-utils libnotify-bin   # or: alsa-utils
 | `ZUNDAMON_ASSETS_DIR` | 同梱 WAV の探索先を別ディレクトリに切り替えます。 |
 | `ZUNDAMON_DEBUG` | `1` にすると実行経路・OS 判定・VOICEVOX リクエストの詳細を stderr に出します。 |
 | `ZUNDAMON_DRY_RUN` | `1` にすると実際の再生/通知をスキップします (主にテスト用)。 |
+| `ZUNDAMON_COOLDOWN_MS` | 同じイベントの連打を抑えるクールダウン (ミリ秒)。既定 `3000`。この時間内に同じイベントが再発火してもボイス/通知をスキップし、鳴り止まなくなるのを防ぎます。`0` で無効化。 |
 
 ---
 

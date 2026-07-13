@@ -27,6 +27,10 @@
 //   - 環境変数の追加: ZUNDAMON_USE_VOICEVOX / ZUNDAMON_SPEAKER_ID
 //                      ZUNDAMON_VOICEVOX_HOST / ZUNDAMON_DRY_RUN
 //
+//   - 連打抑制 (クールダウンロック): 短時間に同じイベントが繰り返し発火しても
+//     ボイスが重なって鳴り止まなくならないよう、直近再生からのクールダウン中は
+//     再生/通知をスキップする。ZUNDAMON_COOLDOWN_MS で調整 (0 で無効化)。
+//
 // hook は絶対に落ちない。どんな例外が出ても exit 0 で終わる。
 // =============================================================================
 
@@ -196,6 +200,67 @@ function escapeAppleScript(s) {
 /** PowerShell シングルクォート文字列用のエスケープ */
 function escapePSSingleQuoted(s) {
   return String(s).replace(/'/g, "''");
+}
+
+// -----------------------------------------------------------------------------
+// 連打抑制 (クールダウンロック)
+// -----------------------------------------------------------------------------
+// 同じイベントが短時間に連続発火 (権限待ちの再通知・アイドル再通知・
+// 上位ツールのループ等) すると、ボイスが重なって「鳴り止まない」状態になる。
+// これを防ぐため、イベントごとに直近再生時刻をロックファイルへ記録し、
+// クールダウン中の再発火は再生も通知もスキップする。
+//   - ロックは OS の一時ディレクトリ内のタイムスタンプファイルで管理
+//   - イベントごとに独立 (Stop と Notification は別カウント)
+//   - ZUNDAMON_COOLDOWN_MS で調整。0 で無効化。既定 3000ms。
+
+const DEFAULT_COOLDOWN_MS = 3000;
+
+/** クールダウン時間(ms)を解決する。既定 3000ms、0 で無効化。 */
+function resolveCooldownMs() {
+  const raw = process.env.ZUNDAMON_COOLDOWN_MS;
+  if (raw !== undefined && raw !== '') {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isInteger(n) && n >= 0) return n;
+    logWarn(`ZUNDAMON_COOLDOWN_MS is not a valid non-negative integer: ${raw}`);
+  }
+  return DEFAULT_COOLDOWN_MS;
+}
+
+/** イベントごとのロックファイルパス (eventName は既知の英数字のみ) */
+function cooldownLockPath(eventName) {
+  return path.join(os.tmpdir(), `himari-code-notify.${eventName}.lock`);
+}
+
+/**
+ * クールダウン判定 & タイムスタンプ更新。
+ *   戻り値 true  → 再生してよい (ロックを更新済み)
+ *   戻り値 false → クールダウン中なのでスキップすべき
+ * ロック I/O が失敗しても再生は止めない (フェイルオープンで true)。
+ */
+function acquireCooldown(eventName, cooldownMs) {
+  if (cooldownMs <= 0) return true;
+  const lockPath = cooldownLockPath(eventName);
+  const now = Date.now();
+  try {
+    if (existsSync(lockPath)) {
+      const prev = Number.parseInt(readFileSync(lockPath, 'utf8').trim(), 10);
+      if (Number.isInteger(prev) && now - prev < cooldownMs) {
+        logDebug(
+          `cooldown active for ${eventName} ` +
+            `(${now - prev}ms < ${cooldownMs}ms), skipping`
+        );
+        return false;
+      }
+    }
+  } catch (e) {
+    logDebug(`cooldown read failed: ${e.message}`);
+  }
+  try {
+    writeFileSync(lockPath, String(now));
+  } catch (e) {
+    logDebug(`cooldown write failed: ${e.message}`);
+  }
+  return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -571,6 +636,15 @@ async function main() {
   const eventName = DEFAULT_PHRASES[rawEvent] ? rawEvent : 'Stop';
   if (eventName !== rawEvent) {
     logDebug(`unknown event: ${rawEvent}. falling back to Stop.`);
+  }
+
+  // ---- 1.5. 連打抑制 ----
+  // クールダウン中に同じイベントが再発火したら、ここで打ち切る。
+  // (VOICEVOX 合成などの重い処理に入る前に判定してムダも省く)
+  const cooldownMs = resolveCooldownMs();
+  if (!acquireCooldown(eventName, cooldownMs)) {
+    logDebug(`skipped by cooldown: event=${eventName}`);
+    return;
   }
 
   // ---- 2. ユーザー設定の読み込みとフレーズ/話者の解決 ----
