@@ -10,6 +10,8 @@
 
 # himari-code-notify
 
+> 最終動作確認: 2026-11-20 — `node scripts/test.mjs` 20/20 pass (Node.js 18+)
+
 <video src="https://github.com/user-attachments/assets/af546770-c1f1-40dd-a5e9-c013522f88ac" poster="assets/himari-code-notify-intro-poster.jpg" controls width="100%"></video>
 
 > 音声あり・35秒 — VOICEVOX:冥鳴ひまり
